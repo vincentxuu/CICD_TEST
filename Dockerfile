@@ -17,7 +17,7 @@ RUN npm install -g pm2
 COPY . .
 
 # 暴露应用程序运行的端口
-EXPOSE 4000
+EXPOSE 3000
 
 # 使用 PM2 启动应用程序
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]
