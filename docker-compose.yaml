@@ -52,7 +52,7 @@ services:
     ports:
       - "80:80"
     environment:
-      APP_ENV: ${APP_ENV}
+      - app_env=prod_app:3000
     depends_on:
       - prod_app
       - dev_app
