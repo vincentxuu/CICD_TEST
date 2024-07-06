@@ -65,9 +65,9 @@ jobs:
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          echo "Building image: $DOCKER_HUB_USERNAME/node-app:${{ env.DOCKER_TAG }}"
-          docker build -t $DOCKER_HUB_USERNAME/node-app:${{ env.DOCKER_TAG }} .
-          docker push $DOCKER_HUB_USERNAME/node-app:${{ env.DOCKER_TAG }}
+          echo "Building image: $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}"
+          docker build -t $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }} .
+          docker push $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}
           echo "Listing local Docker images:"
           docker images
 
@@ -75,8 +75,8 @@ jobs:
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          echo "Verifying image on Docker Hub: $DOCKER_HUB_USERNAME/node-app:${{ env.DOCKER_TAG }}"
-          MANIFEST=$(docker manifest inspect $DOCKER_HUB_USERNAME/node-app:${{ env.DOCKER_TAG }})
+          echo "Verifying image on Docker Hub: $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}"
+          MANIFEST=$(docker manifest inspect $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }})
           if [ $? -eq 0 ]; then
             echo "Image successfully pushed and verified on Docker Hub"
             echo "$MANIFEST"
