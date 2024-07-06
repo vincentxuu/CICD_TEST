@@ -21,3 +21,10 @@ EXPOSE 3000
 
 # 使用 PM2 启动应用程序
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]
+
+
+# 使用官方的 Nginx 镜像作为基础镜像
+FROM nginx:latest
+
+# 复制本地的 nginx.conf 文件到容器内
+COPY /path/to/local/nginx.conf /etc/nginx/nginx.conf
