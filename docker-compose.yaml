@@ -20,7 +20,7 @@ services:
     volumes:
       - .:/usr/src/app
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       MONGO_URL: mongodb://mongo:27017/dev_db
       REDIS_URL: redis://redis:6379
