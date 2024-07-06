@@ -43,7 +43,7 @@ jobs:
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "APP_ENV=prd" >> $GITHUB_ENV
             echo "APP_SERVICE=prod_app" >> $GITHUB_ENV
-            echo "DOCKER_TAG=latest" >> $GITHUB_ENV
+            echo "DOCKER_TAG=prd" >> $GITHUB_ENV
           else
             echo "APP_ENV=dev" >> $GITHUB_ENV
             echo "APP_SERVICE=dev_app" >> $GITHUB_ENV
