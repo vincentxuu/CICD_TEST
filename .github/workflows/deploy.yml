@@ -41,10 +41,10 @@ jobs:
       - name: Set Environment Variables
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "APP_ENV=production" >> $GITHUB_ENV
+            echo "APP_ENV=prd" >> $GITHUB_ENV
             echo "APP_SERVICE=prod_app" >> $GITHUB_ENV
           else
-            echo "APP_ENV=development" >> $GITHUB_ENV
+            echo "APP_ENV=dev" >> $GITHUB_ENV
             echo "APP_SERVICE=dev_app" >> $GITHUB_ENV
           fi
 
