@@ -48,6 +48,22 @@ jobs:
             echo "APP_SERVICE=dev_app" >> $GITHUB_ENV
           fi
 
+      - name: Prepare Linode Instance
+        env:
+          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+        run: |
+          ssh root@$LINODE_INSTANCE_IP "
+            mkdir -p /root/node_app
+            cd /root/node_app
+            if [ ! -d .git ]; then
+              git init
+              git remote add origin $REPO_URL
+            else
+              git remote set-url origin $REPO_URL
+            fi
+          "
+
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
