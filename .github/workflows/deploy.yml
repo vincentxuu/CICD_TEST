@@ -32,30 +32,72 @@ jobs:
       run: |
         if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
           echo "BRANCH=main" >> $GITHUB_ENV
-          echo "ENV_FILE=.env.prod" >> $GITHUB_ENV
           echo "REMOTE_DIR=prod" >> $GITHUB_ENV
         elif [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
           echo "BRANCH=dev" >> $GITHUB_ENV
-          echo "ENV_FILE=.env.dev" >> $GITHUB_ENV
           echo "REMOTE_DIR=dev" >> $GITHUB_ENV
         fi
 
-    - name: Build and push Docker images
-      run: |
-        docker-compose --env-file ${{ env.ENV_FILE }} build
-        docker-compose --env-file ${{ env.ENV_FILE }} push
-
-    - name: Deploy to server
-      uses: easingthemes/ssh-deploy@v2.1.5
+    - name: Ensure Docker and Directory on Linode
       env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        ARGS: "-avz --delete"
-      with:
-        remote_dir: ${{ env.REMOTE_DIR }}
-        local_dir: .
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-
-    - name: Start services on server
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        REPO_URL: ${{ secrets.REPO_URL }}
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd ${{ env.REMOTE_DIR }} && docker-compose --env-file ${{ env.ENV_FILE }} up -d"
+        ssh root@$LINODE_INSTANCE_IP "
+          apt-get update && 
+          apt-get install -y docker.io docker-compose &&
+          systemctl start docker &&
+          systemctl enable docker &&
+          mkdir -p /root/node_app && 
+          cd /root/node_app && 
+          git init && 
+          git remote add origin $REPO_URL || git remote set-url origin $REPO_URL
+        "
+
+    - name: Deploy to Linode
+      if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
+      env:
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      run: |
+        ssh $SERVER_USER@$SERVER_HOST"
+          cd /root/node_app &&
+          git fetch origin dev &&
+          git reset --hard origin/dev &&
+          echo 'Contents of /root/node_app:' &&
+          ls -la &&
+          if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ] && [ -f .env ]; then
+            echo 'Docker Compose and .env files found. Proceeding with deployment.' &&
+            echo 'Contents of .env file:' &&
+            set -o allexport && source .env && set +o allexport &&
+            echo 'Environment variables loaded:' &&
+            env | grep -E '^(PORT|NODE_ENV|MONGO_URL|REDIS_HOST|DOCKER_HUB_USERNAME|DOCKER_TAG|CONTAINER_NAME)' &&
+            docker-compose version &&
+            docker-compose -f docker-compose.yaml -f docker-compose.override.yaml config &&
+            docker-compose -f docker-compose.yaml -f docker-compose.override.yaml down --remove-orphans &&
+            docker network create nodeapp_default || true &&
+            docker-compose -f docker-compose.yaml -f docker-compose.override.yaml up -d --build
+          else
+            echo 'Error: docker-compose files or .env file not found. Listing all yaml files:' &&
+            ls -la *.yaml *.yml .env &&
+            exit 1
+          fi
+        "
+            
+    - name: Verify Deployment
+      if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
+      env:
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      run: |
+        echo "Verifying deployment"
+        ssh $SERVER_USER@$SERVER_HOST"
+          cd /root/node_app &&
+          docker ps &&
+          if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ]; then
+            docker-compose -f docker-compose.yaml -f docker-compose.override.yaml logs --tail=50
+          else
+            echo 'Warning: docker-compose files not found. Skipping logs.'
+          fi
+        "
