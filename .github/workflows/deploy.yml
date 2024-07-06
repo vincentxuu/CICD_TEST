@@ -47,7 +47,7 @@ jobs:
         SERVER_HOST: ${{ secrets.SERVER_HOST }}
         REPO_URL: ${{ secrets.REPO_URL }}
       run: |
-        ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_HOST" "
+        ssh -o StrictHostKeyChecking=no "innocent0705@$SERVER_HOST" "
           apt-get update && 
           apt-get install -y docker.io docker-compose &&
           systemctl start docker &&
