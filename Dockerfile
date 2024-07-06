@@ -27,4 +27,4 @@ CMD ["pm2-runtime", "start", "ecosystem.config.js"]
 FROM nginx:latest
 
 # 复制本地的 nginx.conf 文件到容器内
-COPY /path/to/local/nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf
