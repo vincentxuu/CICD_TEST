@@ -38,12 +38,13 @@ jobs:
           echo "REMOTE_DIR=dev" >> $GITHUB_ENV
         fi
 
-    - name: Ensure Docker and Directory on Linode
+    - name: Ensure Docker and Directory on Server
       env:
+        SERVER_USER: ${{ secrets.SERVER_USER }}
         SERVER_HOST: ${{ secrets.SERVER_HOST }}
         REPO_URL: ${{ secrets.REPO_URL }}
       run: |
-        ssh root@$LINODE_INSTANCE_IP "
+        ssh $SERVER_USER@$SERVER_HOST"
           apt-get update && 
           apt-get install -y docker.io docker-compose &&
           systemctl start docker &&
@@ -54,7 +55,7 @@ jobs:
           git remote add origin $REPO_URL || git remote set-url origin $REPO_URL
         "
 
-    - name: Deploy to Linode
+    - name: Deploy to Server
       if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
       env:
         SERVER_USER: ${{ secrets.SERVER_USER }}
