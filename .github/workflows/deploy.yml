@@ -37,7 +37,10 @@ jobs:
           echo "BRANCH=dev" >> $GITHUB_ENV
           echo "REMOTE_DIR=dev" >> $GITHUB_ENV
         fi
-
+    - name: Debug environment variables
+      run: |
+        echo "SERVER_HOST: ${{ secrets.SERVER_HOST }}"
+        echo "SERVER_USER: ${{ secrets.SERVER_USER }}"
     - name: Ensure Docker and Directory on Server
       env:
         SERVER_USER: ${{ secrets.SERVER_USER }}
