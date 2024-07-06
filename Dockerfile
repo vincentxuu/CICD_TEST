@@ -21,13 +21,3 @@ EXPOSE 3000
 
 # 使用 PM2 启动应用程序
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]
-
-
-FROM nginx:latest
-
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
