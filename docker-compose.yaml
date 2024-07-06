@@ -3,7 +3,7 @@ version: '3.8'
 services:
   prod_app:
     image: node:20
-    working_dir: /usr/src/app
+    container_name: prod_app
     volumes:
       - .:/usr/src/app
     ports:
@@ -16,7 +16,7 @@ services:
 
   dev_app:
     image: node:20
-    working_dir: /usr/src/app
+    container_name: dev_app
     volumes:
       - .:/usr/src/app
     ports:
