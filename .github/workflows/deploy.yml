@@ -17,6 +17,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
+      - name: Install Linode CLI
+        run: pip install linode-cli
+      
+      - name: Verify Linode CLI Installation
+        run: linode-cli --version
+      
+      - name: Configure Linode CLI
+        env:
+          LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
+        run: |
+          export LINODE_CLI_TOKEN
+          linode-cli --no-defaults linodes list
+          
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.LINODE_INSTANCE_IP }} >> ~/.ssh/known_hosts
+
       - name: Set Environment Variables
         run: |
           echo "APP_DIR=/root/node_app" >> $GITHUB_ENV
@@ -66,27 +88,38 @@ jobs:
             export DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME
             export DOCKER_TAG=${{ env.DOCKER_TAG }}
             export APP_SERVICE=${{ env.APP_SERVICE }}
-            
+            # 確保目標目錄存在
             mkdir -p ${{ env.APP_DIR }}
-            cd ${{ env.APP_DIR }}
 
-            if [ -d .git ]; then
+            # 檢查是否已經存在 Git 倉庫
+            if [ -d ${{ env.APP_DIR }}/.git ]; then
+              # 如果存在，更新現有倉庫
+              cd ${{ env.APP_DIR }}
               git fetch --all
               git checkout ${{ github.ref_name }}
               git reset --hard origin/${{ github.ref_name }}
               git clean -fd
             else
-              git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git .
+              # 如果不存在，克隆倉庫
+              git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git ${{ env.APP_DIR }}
+              cd ${{ env.APP_DIR }}
             fi
 
+            # 檢查並創建 .env 文件（如果不存在）
             if [ ! -f .env.${{ env.APP_ENV }} ]; then
               cp .env.${{ env.APP_ENV }}_temp .env.${{ env.APP_ENV }}
             fi
 
+            # 拉取最新的 Docker 映像
             docker-compose -f ${{ env.COMPOSE_FILE }} pull
-            docker-compose -f ${{ env.COMPOSE_FILE }} down --remove-orphans
-            docker-compose -f ${{ env.COMPOSE_FILE }} up -d --build $APP_SERVICE mongo redis nginx
 
+            # 停止舊的容器
+            docker-compose -f ${{ env.COMPOSE_FILE }} down --remove-orphans
+
+            # 啟動新的容器
+            docker-compose -f ${{ env.COMPOSE_FILE }} up -d --build ${{ env.APP_SERVICE }} mongo redis nginx
+
+            # 清理未使用的 Docker 資源
             docker system prune -af
           "
 
