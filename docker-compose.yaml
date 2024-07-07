@@ -12,7 +12,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-
+    networks:
+      - my-network
 
   dev_app:
     image: ${DOCKER_HUB_USERNAME}/app:${DOCKER_TAG}
@@ -25,7 +26,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-
+    networks:
+      - my-network
 
   mongo:
     image: mongo:4.4
@@ -34,7 +36,8 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
-
+    networks:
+      - my-network
 
   redis:
     image: redis:6
@@ -43,7 +46,8 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-
+    networks:
+      - my-network
 
   nginx:
     image: nginx:latest
@@ -57,8 +61,13 @@ services:
     depends_on:
       - prod_app
       - dev_app
-
+    networks:
+      - my-network
 
 volumes:
   mongo-data:
   redis-data:
+  
+networks:
+  my-network:
+    driver: bridge
