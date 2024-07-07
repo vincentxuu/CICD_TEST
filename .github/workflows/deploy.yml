@@ -14,7 +14,8 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
       
       - name: Install Linode CLI
         run: pip install linode-cli
@@ -22,7 +23,7 @@ jobs:
       - name: Verify Linode CLI Installation
         run: linode-cli --version
       
-      - name: Configure and Test Linode CLI
+      - name: Configure Linode CLI
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
         run: |
@@ -41,20 +42,19 @@ jobs:
       - name: Set Environment Variables
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "APP_ENV=prd" >> $GITHUB_ENV
+            echo "APP_ENV=prod" >> $GITHUB_ENV
             echo "APP_SERVICE=prod_app" >> $GITHUB_ENV
-            echo "DOCKER_TAG=prd" >> $GITHUB_ENV
+            echo "DOCKER_TAG=prod" >> $GITHUB_ENV
+            echo "APP_DIR=/root/node_app_prod" >> $GITHUB_ENV
+            echo "COMPOSE_FILE=docker-compose.yml" >> $GITHUB_ENV
           else
             echo "APP_ENV=dev" >> $GITHUB_ENV
             echo "APP_SERVICE=dev_app" >> $GITHUB_ENV
             echo "DOCKER_TAG=dev" >> $GITHUB_ENV
+            echo "APP_DIR=/root/node_app_dev" >> $GITHUB_ENV
+            echo "COMPOSE_FILE=docker-compose.yml" >> $GITHUB_ENV
           fi
-      - name: Debug - Print Environment Variables
-        run: |
-          echo "GitHub Ref: ${{ github.ref }}"
-          echo "APP_ENV: ${{ env.APP_ENV }}"
-          echo "APP_SERVICE: ${{ env.APP_SERVICE }}"
-          echo "DOCKER_TAG: ${{ env.DOCKER_TAG }}"
+
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -65,57 +65,20 @@ jobs:
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          echo "Building image: $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}"
           docker build -t $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }} .
           docker push $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}
-          echo "Listing local Docker images:"
-          docker images
 
       - name: Verify Docker Hub Push
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          echo "Verifying image on Docker Hub: $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}"
           MANIFEST=$(docker manifest inspect $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }})
           if [ $? -eq 0 ]; then
             echo "Image successfully pushed and verified on Docker Hub"
-            echo "$MANIFEST"
           else
             echo "Failed to verify image on Docker Hub"
             exit 1
           fi
-      - name: Prepare Linode Instance
-        env:
-          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
-          REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
-        run: |
-          ssh root@$LINODE_INSTANCE_IP "
-            mkdir -p /root/node_app
-            cd /root/node_app
-            if [ ! -d .git ]; then
-              git init
-              git remote add origin $REPO_URL
-            else
-              git remote set-url origin $REPO_URL
-            fi
-          "
-
-      - name: Install Docker and Docker Compose on Linode
-        env:
-          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
-        run: |
-          ssh root@$LINODE_INSTANCE_IP "
-            apt-get update
-            apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-            add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"
-            apt-get update
-            apt-get install -y docker-ce
-            curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
-            docker --version
-            docker-compose --version
-          "
 
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
@@ -124,42 +87,50 @@ jobs:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
           ssh root@$LINODE_INSTANCE_IP "
-            cd /root/node_app &&
-            git fetch origin ${{ github.ref }} &&
-            git reset --hard FETCH_HEAD &&
-            echo 'Contents of /root/node_app:' &&
-            ls -la &&
-            if [ -f docker-compose.yaml ] && [ -f .env.${{ env.APP_ENV }} ]; then
-              echo 'Docker Compose and .env.${{ env.APP_ENV }} files found. Proceeding with deployment.' &&
-              cp .env.${{ env.APP_ENV }} .env &&
-              echo 'Contents of .env file:' &&
-              cat .env &&
-              echo 'APP_ENV=${{ env.APP_ENV }}' >> .env &&
-              echo 'DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}' >> .env &&
-              echo 'DOCKER_TAG=${{ env.DOCKER_TAG }}' >> .env &&
-              echo 'Environment variables loaded:' &&
-              env | grep -E '^(PORT|NODE_ENV|MONGO_URL|REDIS_URL|DOCKER_HUB_USERNAME|APP_ENV|DOCKER_TAG)' &&
-              docker-compose version &&
-              docker-compose config &&
-              docker-compose pull &&
-              docker-compose down --remove-orphans &&
-              docker network create app-network || true &&
-              docker-compose up -d --build ${{ env.APP_SERVICE }} mongo redis nginx
-            else
-              echo 'Error: docker-compose.yaml or .env.${{ env.APP_ENV }} file not found. Listing all files:' &&
-              ls -la &&
-              exit 1
+            # 確保目標目錄存在
+            mkdir -p ${{ env.APP_DIR }}
+
+            # 克隆最新的程式碼到臨時目錄
+            git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git ${{ env.APP_DIR }}_tmp
+
+            # 如果 .env 文件不存在，則從適當的範本創建它
+            if [ ! -f ${{ env.APP_DIR }}/.env ]; then
+              if [ '${{ github.ref }}' = 'refs/heads/main' ]; then
+                cp ${{ env.APP_DIR }}_tmp/.env.prod_temp ${{ env.APP_DIR }}/.env.prod
+              else
+                cp ${{ env.APP_DIR }}_tmp/.env.dev_temp ${{ env.APP_DIR }}/.env.dev
+              fi
             fi
-          "
+
+            # 使用 rsync 更新文件，排除 .env
+            rsync -av --delete --exclude='.env' ${{ env.APP_DIR }}_tmp/ ${{ env.APP_DIR }}/
             
+            # 清理臨時目錄
+            rm -rf ${{ env.APP_DIR }}_tmp
+            
+            # 切換到應用程式目錄
+            cd ${{ env.APP_DIR }}
+
+            # 拉取最新的 Docker 映像
+            docker-compose -f ${{ env.COMPOSE_FILE }} pull
+
+            # 停止舊的容器
+            docker-compose -f ${{ env.COMPOSE_FILE }} down --remove-orphans
+
+            # 啟動新的容器
+            docker-compose -f ${{ env.COMPOSE_FILE }} up -d --build ${{ env.APP_SERVICE }} mongo redis nginx
+
+            # 清理未使用的 Docker 資源
+            docker system prune -af
+          "
+
       - name: Verify Deployment
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
         run: |
-          echo "Verifying deployment"
           ssh root@$LINODE_INSTANCE_IP "
-            cd /root/node_app &&
+            cd ${{ env.APP_DIR }} &&
             docker ps &&
-            docker-compose logs --tail=50 ${{ env.APP_SERVICE }} nginx
+            docker-compose -f ${{ env.COMPOSE_FILE }} logs --tail=50 ${{ env.APP_SERVICE }} nginx
           "
