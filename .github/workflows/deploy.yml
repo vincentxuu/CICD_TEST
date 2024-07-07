@@ -118,9 +118,6 @@ jobs:
 
             # 啟動新的容器
             docker-compose -f ${{ env.COMPOSE_FILE }} up -d --build ${{ env.APP_SERVICE }} mongo redis nginx
-
-            # 清理未使用的 Docker 資源
-            docker system prune -af
           "
 
       - name: Verify Deployment
