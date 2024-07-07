@@ -47,9 +47,8 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf.template
+      - ./nginx.conf:/etc/nginx/nginx.conf
       - app_env=${APP_ENV}
-
 
 volumes:
   mongo-data:
