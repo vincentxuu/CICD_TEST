@@ -41,18 +41,16 @@ jobs:
 
       - name: Set Environment Variables
         run: |
+          echo "APP_DIR=/root/node_app" >> $GITHUB_ENV
+          echo "COMPOSE_FILE=docker-compose.yaml" >> $GITHUB_ENV
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "APP_ENV=prod" >> $GITHUB_ENV
             echo "APP_SERVICE=prod_app" >> $GITHUB_ENV
             echo "DOCKER_TAG=prod" >> $GITHUB_ENV
-            echo "APP_DIR=/root/node_app_prod" >> $GITHUB_ENV
-            echo "COMPOSE_FILE=docker-compose.yaml" >> $GITHUB_ENV
           else
             echo "APP_ENV=dev" >> $GITHUB_ENV
             echo "APP_SERVICE=dev_app" >> $GITHUB_ENV
             echo "DOCKER_TAG=dev" >> $GITHUB_ENV
-            echo "APP_DIR=/root/node_app_dev" >> $GITHUB_ENV
-            echo "COMPOSE_FILE=docker-compose.yaml" >> $GITHUB_ENV
           fi
 
       - name: Login to Docker Hub
@@ -90,26 +88,24 @@ jobs:
             # 確保目標目錄存在
             mkdir -p ${{ env.APP_DIR }}
 
-            # 克隆最新的程式碼到臨時目錄
-            git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git ${{ env.APP_DIR }}_tmp
-
-            # 如果 .env 文件不存在，則從適當的範本創建它
-            if [ ! -f ${{ env.APP_DIR }}/.env ]; then
-              if [ '${{ github.ref }}' = 'refs/heads/main' ]; then
-                cp ${{ env.APP_DIR }}_tmp/.env.prod_temp ${{ env.APP_DIR }}/.env.prod
-              else
-                cp ${{ env.APP_DIR }}_tmp/.env.dev_temp ${{ env.APP_DIR }}/.env.dev
-              fi
+            # 檢查是否已經存在 Git 倉庫
+            if [ -d ${{ env.APP_DIR }}/.git ]; then
+              # 如果存在，更新現有倉庫
+              cd ${{ env.APP_DIR }}
+              git fetch --all
+              git checkout ${{ github.ref_name }}
+              git reset --hard origin/${{ github.ref_name }}
+              git clean -fd
+            else
+              # 如果不存在，克隆倉庫
+              git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git ${{ env.APP_DIR }}
+              cd ${{ env.APP_DIR }}
             fi
 
-            # 使用 rsync 更新文件，排除 .env
-            rsync -av --delete --exclude='.env' ${{ env.APP_DIR }}_tmp/ ${{ env.APP_DIR }}/
-            
-            # 清理臨時目錄
-            rm -rf ${{ env.APP_DIR }}_tmp
-            
-            # 切換到應用程式目錄
-            cd ${{ env.APP_DIR }}
+            # 檢查並創建 .env 文件（如果不存在）
+            if [ ! -f .env.${{ env.APP_ENV }} ]; then
+              cp .env.${{ env.APP_ENV }}_temp .env.${{ env.APP_ENV }}
+            fi
 
             # 拉取最新的 Docker 映像
             docker-compose -f ${{ env.COMPOSE_FILE }} pull
