@@ -120,7 +120,6 @@ jobs:
             # 拉取最新的 Docker 映像
             docker-compose -f \$COMPOSE_FILE pull
 
-            docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE config
             # 停止舊的容器
             docker-compose -f \$COMPOSE_FILE down --remove-orphans
 
