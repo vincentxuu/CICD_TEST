@@ -19,8 +19,8 @@ COPY . .
 # 暴露应用程序运行的端口
 EXPOSE 3000
 
-# 確保 PM2 在 PATH 中
-ENV PATH /usr/local/share/.config/yarn/global/node_modules/.bin:$PATH
+# 确保 PM2 在 PATH 中
+ENV PATH /usr/local/bin:$PATH
 
 # 調試步驟以驗證安裝
 RUN node -v
