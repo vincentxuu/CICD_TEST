@@ -124,7 +124,7 @@ jobs:
             docker-compose -f \$COMPOSE_FILE down --remove-orphans
 
             # 啟動新的容器
-            docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo redis nginx
+            docker-compose  -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo redis nginx
           "
 
       - name: Verify Deployment
