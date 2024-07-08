@@ -22,8 +22,8 @@ services:
     networks:
       - prod_network
     depends_on:
-      - mongo_dev
-      - redis_dev
+      - mongo_prod
+      - redis_prod
 
 
   dev_app:
