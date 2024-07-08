@@ -19,9 +19,6 @@ COPY . .
 # 暴露应用程序运行的端口
 EXPOSE 3000
 
-# 确保 PM2 在 PATH 中
-ENV PATH /usr/local/bin:$PATH
-
 # 調試步驟以驗證安裝
 RUN node -v
 RUN npm -v
@@ -31,9 +28,3 @@ RUN ls -al /app
 # 使用 PM2 启动应用程序
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]
 
-
-# 使用官方的 Nginx 镜像作为基础镜像
-FROM nginx:latest
-
-# 复制本地的 nginx.conf 文件到容器内
-COPY nginx.conf /etc/nginx/nginx.conf
