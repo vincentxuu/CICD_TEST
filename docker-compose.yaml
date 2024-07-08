@@ -20,7 +20,7 @@ services:
       - .:/app
       - /app/node_modules
     networks:
-      - dev_network
+      - prod_network
     depends_on:
       - mongo_dev
       - redis_dev
@@ -45,7 +45,10 @@ services:
       - .:/app
       - /app/node_modules
     networks:
-      - my-network
+      - dev_network
+    depends_on:
+      - mongo_dev
+      - redis_dev
 
   mongo_prod:
     image: mongo:4.4
