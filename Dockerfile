@@ -19,6 +19,15 @@ COPY . .
 # 暴露应用程序运行的端口
 EXPOSE 3000
 
+# 確保 PM2 在 PATH 中
+ENV PATH /usr/local/share/.config/yarn/global/node_modules/.bin:$PATH
+
+# 調試步驟以驗證安裝
+RUN node -v
+RUN npm -v
+RUN pm2 -v
+RUN ls -al /app
+
 # 使用 PM2 启动应用程序
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]
 
