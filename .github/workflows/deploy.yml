@@ -84,40 +84,44 @@ jobs:
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          ssh root@$LINODE_INSTANCE_IP "
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
             export DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME
             export DOCKER_TAG=${{ env.DOCKER_TAG }}
             export APP_SERVICE=${{ env.APP_SERVICE }}
+            export APP_DIR=${{ env.APP_DIR }}
+            export COMPOSE_FILE=${{ env.COMPOSE_FILE }}
+            export APP_ENV=${{ env.APP_ENV }}
+
             # 確保目標目錄存在
-            mkdir -p ${{ env.APP_DIR }}
+            mkdir -p \$APP_DIR
 
             # 檢查是否已經存在 Git 倉庫
-            if [ -d ${{ env.APP_DIR }}/.git ]; then
+            if [ -d \$APP_DIR/.git ]; then
               # 如果存在，更新現有倉庫
-              cd ${{ env.APP_DIR }}
+              cd \$APP_DIR
               git fetch --all
               git checkout ${{ github.ref_name }}
               git reset --hard origin/${{ github.ref_name }}
               git clean -fd
             else
               # 如果不存在，克隆倉庫
-              git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git ${{ env.APP_DIR }}
-              cd ${{ env.APP_DIR }}
+              git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git  \$APP_DIR
+              cd \$APP_DIR
             fi
 
             # 檢查並創建 .env 文件（如果不存在）
-            if [ ! -f .env.${{ env.APP_ENV }} ]; then
-              cp .env.${{ env.APP_ENV }}_temp .env.${{ env.APP_ENV }}
+            if [ ! -f .env.\${APP_ENV} ]; then
+              cp .env.\${APP_ENV}_temp .env.\${APP_ENV}
             fi
 
             # 拉取最新的 Docker 映像
-            docker-compose -f ${{ env.COMPOSE_FILE }} pull
+            docker-compose -f \$COMPOSE_FILE pull
 
             # 停止舊的容器
-            docker-compose -f ${{ env.COMPOSE_FILE }} down --remove-orphans
+            docker-compose -f \$COMPOSE_FILE down --remove-orphans
 
             # 啟動新的容器
-            docker-compose --env-file .env.${{ env.APP_ENV }} -f ${{ env.COMPOSE_FILE }} up -d --build ${{ env.APP_SERVICE }} mongo redis nginx
+            docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo redis nginx
           "
 
       - name: Verify Deployment
