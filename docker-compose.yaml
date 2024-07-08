@@ -11,14 +11,20 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=prod
-      - APP_ENV=prod
+      - MONGODB_URI=mongodb://mongo_prod:27017/mydatabase_prod
+      - REDIS_HOST=redis_prod
+      - REDIS_PORT=6379
     env_file:
       - .env.prod
     volumes:
       - .:/app
       - /app/node_modules
     networks:
-      - my-network
+      - dev_network
+    depends_on:
+      - mongo_dev
+      - redis_dev
+
 
   dev_app:
     image: ${DOCKER_HUB_USERNAME}/app:${DOCKER_TAG}
@@ -30,32 +36,56 @@ services:
       - "3001:3000"
     environment:
       - NODE_ENV=dev
-      - APP_ENV=dev
+      - MONGODB_URI=mongodb://mongo_dev:27017/mydatabase_dev
+      - REDIS_HOST=redis_dev
+      - REDIS_PORT=6379
+    env_file:
+      - .env.dev
     volumes:
       - .:/app
       - /app/node_modules
     networks:
       - my-network
 
-  mongo:
+  mongo_prod:
     image: mongo:4.4
-    container_name: mongo
+    container_name: mongo_prod
     ports:
       - "27017:27017"
     volumes:
-      - mongo-data:/data/db
+      - mongo_prod_data:/data/db
     networks:
-      - my-network
+      - prod_network
 
-  redis:
+  mongo_dev:
+    image: mongo:4.4
+    container_name: mongo_dev
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_dev_data:/data/db
+    networks:
+      - dev_network
+
+  redis_prod:
     image: redis:6
-    container_name: redis
+    container_name: redis_prod
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - redis_prod_data:/data
     networks:
-      - my-network
+      - prod_network
+
+  redis_dev:
+    image: redis:6
+    container_name: redis_dev
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - dev_network
 
   nginx:
     image: nginx:latest
@@ -71,12 +101,17 @@ services:
       - prod_app
       - dev_app
     networks:
-      - my-network
+      - prod_network
+      - dev_network
 
 volumes:
-  mongo-data:
-  redis-data:
-  
+  mongo_prod_data:
+  mongo_dev_data:
+  redis_prod_data:
+  redis_dev_data:
+
 networks:
-  my-network:
+  prod_network:
+    driver: bridge
+  dev_network:
     driver: bridge
