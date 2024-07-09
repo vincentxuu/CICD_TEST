@@ -90,7 +90,20 @@ jobs:
               export APP_DIR=${{ env.APP_DIR }}
               export COMPOSE_FILE=${{ env.COMPOSE_FILE }}
               export APP_ENV=${{ env.APP_ENV }}
-  
+
+              # 診斷步驟
+              echo 'Diagnostic information:'
+              docker version
+              docker-compose version
+              docker info
+
+              # 確保 Docker 和 Docker Compose 是最新版本
+              apt-get update
+              apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+              # 重啟 Docker 服務
+              systemctl restart docker
+              
               # 確保目標目錄存在
               mkdir -p \$APP_DIR
   
