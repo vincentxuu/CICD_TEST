@@ -77,67 +77,72 @@ jobs:
             echo "Failed to verify image on Docker Hub"
             exit 1
           fi
-
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
-            export DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME
-            export DOCKER_TAG=${{ env.DOCKER_TAG }}
-            export APP_SERVICE=${{ env.APP_SERVICE }}
-            export APP_DIR=${{ env.APP_DIR }}
-            export COMPOSE_FILE=${{ env.COMPOSE_FILE }}
-            export APP_ENV=${{ env.APP_ENV }}
-
-            # 確保目標目錄存在
-            mkdir -p \$APP_DIR
-
-            # 檢查是否已經存在 Git 倉庫
-            if [ -d \$APP_DIR/.git ]; then
-              # 如果存在，更新現有倉庫
-              cd \$APP_DIR
-              git fetch --all
-              git checkout ${{ github.ref_name }}
-              git reset --hard origin/${{ github.ref_name }}
-              git clean -fd
-            else
-              # 如果不存在，克隆倉庫
-              git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git  \$APP_DIR
-              cd \$APP_DIR
-            fi
-
-            # 檢查並創建 .env 文件（如果不存在）
-            if [ ! -f .env.\${APP_ENV} ]; then
-              cp .env.\${APP_ENV}_temp .env.\${APP_ENV}
-            fi
-
-            set -o allexport && source .env.\${APP_ENV} && set +o allexport &&
-            echo 'Environment variables loaded:'
-
-            # 拉取最新的 Docker 映像
-            docker-compose -f \$COMPOSE_FILE pull
-
-
-            # 檢查是否有任何服務在運行
-            RUNNING_SERVICES=$(docker-compose -f \$COMPOSE_FILE ps --services --filter "status=running")
-            
-            if [ -z \"\$RUNNING_SERVICES\" ]; then
-              echo \"No services are running. Starting all services...\"
-              docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
-            else
-              echo \"Updating specific services for \${APP_ENV} environment...\"
-              docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo_\${APP_ENV} redis_\${APP_ENV}
-              
-              # 只在必要時重啟 nginx
-              if [ \"\$APP_ENV\" = \"prod\" ]; then
-                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d nginx
+            ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
+              export DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME
+              export DOCKER_TAG=${{ env.DOCKER_TAG }}
+              export APP_SERVICE=${{ env.APP_SERVICE }}
+              export APP_DIR=${{ env.APP_DIR }}
+              export COMPOSE_FILE=${{ env.COMPOSE_FILE }}
+              export APP_ENV=${{ env.APP_ENV }}
+  
+              # 確保目標目錄存在
+              mkdir -p \$APP_DIR
+  
+              # 檢查是否已經存在 Git 倉庫
+              if [ -d \$APP_DIR/.git ]; then
+                # 如果存在，更新現有倉庫
+                cd \$APP_DIR
+                git fetch --all
+                git checkout ${{ github.ref_name }}
+                git reset --hard origin/${{ github.ref_name }}
+                git clean -fd
+                DEPLOYMENT_TYPE='update'
+              else
+                # 如果不存在，克隆倉庫
+                git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git \$APP_DIR
+                cd \$APP_DIR
+                DEPLOYMENT_TYPE='initial'
               fi
-            fi
-          "
-
+  
+              # 檢查並創建 .env 文件（如果不存在）
+              if [ ! -f .env.\${APP_ENV} ]; then
+                cp .env.\${APP_ENV}_temp .env.\${APP_ENV}
+              fi
+  
+              set -o allexport && source .env.\${APP_ENV} && set +o allexport
+              echo 'Environment variables loaded:'
+  
+              # 拉取最新的 Docker 映像
+              docker-compose -f \$COMPOSE_FILE pull
+  
+              if [ \"\$DEPLOYMENT_TYPE\" = 'initial' ]; then
+                echo \"Performing initial deployment...\"
+                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
+              else
+                echo \"Performing update deployment...\"
+                # 檢查是否有任何服務在運行
+                RUNNING_SERVICES=$(docker-compose -f \$COMPOSE_FILE ps --services --filter \"status=running\")
+                
+                if [ -z \"\$RUNNING_SERVICES\" ]; then
+                  echo \"No services are running. Starting all services...\"
+                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
+                else
+                  echo \"Updating specific services for \${APP_ENV} environment...\"
+                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo_\${APP_ENV} redis_\${APP_ENV}
+                  
+                  # 只在必要時重啟 nginx
+                  if [ \"\$APP_ENV\" = \"prod\" ]; then
+                    docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d nginx
+                  fi
+                fi
+              fi
+            "
       - name: Verify Deployment
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
