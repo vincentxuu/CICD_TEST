@@ -47,8 +47,32 @@ app.use('/tag', tagRoutes);
 app.use('/email', emailRoutes);
 app.use('/image', imageRoutes);
 
+// app.get('/', (req, res) => {
+//     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// });
+
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${process.env.NODE_ENV} Environment</title>
+    </head>
+    <body>
+      <h1>Current Environment: ${process.env.NODE_ENV}</h1>
+      <p>PORT: ${process.env.PORT}</p>
+      <p>FRONTEND_URL: ${process.env.FRONTEND_URL}</p>
+      <p>Redirect URL: ${process.env.NODE_ENV === 'production' ? 'https://daodaoedu.tw' : 'https://dev.daodao-notion-test.pages.dev'}</p>
+    </body>
+    </html>
+  `;
+  res.send(htmlContent);
+});
+
+app.get('/', (req, res) => {
+  res.send(`Current environment: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`);
 });
 
 const redirectUrl = process.env.NODE_ENV === 'production' ? 'https://daodaoedu.tw' : 'https://dev.daodao-notion-test.pages.dev';

@@ -134,7 +134,7 @@ jobs:
                   docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
                 else
                   echo \"Updating specific services for \${APP_ENV} environment...\"
-                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo_\${APP_ENV} redis_\${APP_ENV}
+                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE
                 fi
               fi
             "
