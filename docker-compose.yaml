@@ -25,7 +25,6 @@ services:
       - mongo_prod
       - redis_prod
 
-
   dev_app:
     image: ${DOCKER_HUB_USERNAME}/app:dev
     container_name: dev_app
