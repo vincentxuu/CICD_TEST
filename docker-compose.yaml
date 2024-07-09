@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   prod_app:
-    image: ${DOCKER_HUB_USERNAME}/app:${DOCKER_TAG}
+    image: ${DOCKER_HUB_USERNAME}/app:prod
     container_name: prod_app
     build:
       context: .
@@ -11,7 +11,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=prod
-      - MONGODB_URI=mongodb://mongo_prod:27017/mydatabase_prod
+      - MONGODB_URL=mongodb://mongo_prod:27017/mydatabase_prod
       - REDIS_HOST=redis_prod
       - REDIS_PORT=6379
     env_file:
@@ -25,9 +25,8 @@ services:
       - mongo_prod
       - redis_prod
 
-
   dev_app:
-    image: ${DOCKER_HUB_USERNAME}/app:${DOCKER_TAG}
+    image: ${DOCKER_HUB_USERNAME}/app:dev
     container_name: dev_app
     build:
       context: .
@@ -36,7 +35,7 @@ services:
       - "3001:3000"
     environment:
       - NODE_ENV=dev
-      - MONGODB_URI=mongodb://mongo_dev:27017/mydatabase_dev
+      - MONGODB_URL=mongodb://mongo_dev:27017/mydatabase_dev
       - REDIS_HOST=redis_dev
       - REDIS_PORT=6379
     env_file:
