@@ -7,18 +7,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NODE_ENV=prod
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=prod
-      - MONGODB_URL=mongodb://mongo_prod:27017/mydatabase_prod
-      - REDIS_HOST=redis_prod
-      - REDIS_PORT=6379
     env_file:
       - .env.prod
-    volumes:
-      - .:/app
-      - /app/node_modules
     networks:
       - prod_network
     depends_on:
@@ -31,18 +25,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NODE_ENV=dev
     ports:
       - "3001:3000"
-    environment:
-      - NODE_ENV=dev
-      - MONGODB_URL=mongodb://mongo_dev:27017/mydatabase_dev
-      - REDIS_HOST=redis_dev
-      - REDIS_PORT=6379
     env_file:
       - .env.dev
     volumes:
-      - .:/app
-      - /app/node_modules
+      - ./src:/app/src
     networks:
       - dev_network
     depends_on:

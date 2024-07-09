@@ -64,15 +64,12 @@ app.get('/', (req, res) => {
       <h1>Current Environment: ${process.env.NODE_ENV}</h1>
       <p>PORT: ${process.env.PORT}</p>
       <p>FRONTEND_URL: ${process.env.FRONTEND_URL}</p>
-      <p>Redirect URL: ${process.env.NODE_ENV === 'production' ? 'https://daodaoedu.tw' : 'https://dev.daodao-notion-test.pages.dev'}</p>
+      <p>MONGODB_URL: ${process.env.MONGODB_URL}</p>
+      <p>REDIS_HOST: ${process.env.REDIS_HOST}</p>
     </body>
     </html>
   `;
   res.send(htmlContent);
-});
-
-app.get('/', (req, res) => {
-  res.send(`Current environment: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`);
 });
 
 const redirectUrl = process.env.NODE_ENV === 'production' ? 'https://daodaoedu.tw' : 'https://dev.daodao-notion-test.pages.dev';
