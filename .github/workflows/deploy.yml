@@ -91,19 +91,6 @@ jobs:
               export COMPOSE_FILE=${{ env.COMPOSE_FILE }}
               export APP_ENV=${{ env.APP_ENV }}
 
-              # 診斷步驟
-              echo 'Diagnostic information:'
-              docker version
-              docker-compose version
-              docker info
-
-              # 確保 Docker 和 Docker Compose 是最新版本
-              apt-get update
-              apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-              # 重啟 Docker 服務
-              systemctl restart docker
-              
               # 確保目標目錄存在
               mkdir -p \$APP_DIR
   
@@ -148,11 +135,6 @@ jobs:
                 else
                   echo \"Updating specific services for \${APP_ENV} environment...\"
                   docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo_\${APP_ENV} redis_\${APP_ENV}
-                  
-                  # 只在必要時重啟 nginx
-                  if [ \"\$APP_ENV\" = \"prod\" ]; then
-                    docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d nginx
-                  fi
                 fi
               fi
             "
