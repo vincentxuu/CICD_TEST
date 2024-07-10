@@ -103,11 +103,13 @@ jobs:
                 git reset --hard origin/${{ github.ref_name }}
                 git clean -fd
                 DEPLOYMENT_TYPE='update'
+                echo \"DEPLOYMENT_TYPE='update'\"
               else
                 # 如果不存在，克隆倉庫
                 git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git \$APP_DIR
                 cd \$APP_DIR
                 DEPLOYMENT_TYPE='initial'
+                echo \"DEPLOYMENT_TYPE='initial'\"
               fi
   
               # 檢查並創建 .env 文件（如果不存在）
