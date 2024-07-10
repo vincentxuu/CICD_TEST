@@ -128,17 +128,10 @@ jobs:
                 docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
               else
                 echo \"Performing update deployment...\"
-                # 檢查是否有任何服務在運行
-                RUNNING_SERVICES=$(docker-compose -f \$COMPOSE_FILE ps --services --filter \"status=running\")
+                docker-compose -f docker-compose.yaml  down \$APP_SERVICE --remove-orphans
                 
-                if [ -z \"\$RUNNING_SERVICES\" ]; then
-                  echo \"No services are running. Starting all services...\"
-                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
-                else 
-                  docker-compose -f docker-compose.yaml  down \$APP_SERVICE --remove-orphans
-                  echo \"Updating specific services for \${APP_ENV} environment...\"
-                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d  \$APP_SERVICE 
-                fi
+                echo \"Updating specific services for \${APP_ENV} environment...\"
+                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d  \$APP_SERVICE 
               fi
             "
       - name: Verify Deployment
