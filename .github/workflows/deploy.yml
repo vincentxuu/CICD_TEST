@@ -59,12 +59,23 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Check if Docker image exists on Docker Hub
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          docker build -t $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }} .
-          docker push $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}
+          docker pull $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }} || true
+  
+      - name: Build and push Docker image if not exists
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        run: |
+          if ! docker image inspect $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }} > /dev/null 2>&1; then
+            echo "Image does not exist, building and pushing..."
+            docker build -t $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }} .
+            docker push $DOCKER_HUB_USERNAME/app:${{ env.DOCKER_TAG }}
+          else
+            echo "Image already exists, skipping build and push."
+          fi
 
       - name: Verify Docker Hub Push
         env:
