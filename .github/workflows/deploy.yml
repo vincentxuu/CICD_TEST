@@ -133,6 +133,9 @@ jobs:
                   echo \"No services are running. Starting all services...\"
                   docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
                 else
+                  echo \"Stopping and removing running services...\"
+                  docker-compose -f \$COMPOSE_FILE down
+                  
                   echo \"Updating specific services for \${APP_ENV} environment...\"
                   docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo_\${APP_ENV} redis_\${APP_ENV} nginx
                 fi
