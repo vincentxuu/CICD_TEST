@@ -120,9 +120,6 @@ jobs:
               set -o allexport && source .env.\${APP_ENV} && set +o allexport
               echo 'Environment variables loaded:'
   
-              # 拉取最新的 Docker 映像
-              docker-compose -f \$COMPOSE_FILE pull
-  
               if [ \"\$DEPLOYMENT_TYPE\" = 'initial' ]; then
                 echo \"Performing initial deployment...\"
                 docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
@@ -130,8 +127,12 @@ jobs:
                 echo \"Performing update deployment...\"
                 docker-compose -f docker-compose.yaml  down \$APP_SERVICE
                 
+                # 清理舊的容器和網絡
+                docker-compose -f \$COMPOSE_FILE rm -f
+                docker network prune -f
+                
                 echo \"Updating specific services for \${APP_ENV} environment...\"
-                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d  \$APP_SERVICE nginx
+                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE nginx
               fi
             "
       - name: Verify Deployment
