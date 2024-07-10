@@ -103,11 +103,13 @@ jobs:
                 git reset --hard origin/${{ github.ref_name }}
                 git clean -fd
                 DEPLOYMENT_TYPE='update'
+                echo \"DEPLOYMENT_TYPE='update'\"
               else
                 # 如果不存在，克隆倉庫
                 git clone --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git \$APP_DIR
                 cd \$APP_DIR
                 DEPLOYMENT_TYPE='initial'
+                echo \"DEPLOYMENT_TYPE='initial'\"
               fi
   
               # 檢查並創建 .env 文件（如果不存在）
@@ -118,24 +120,19 @@ jobs:
               set -o allexport && source .env.\${APP_ENV} && set +o allexport
               echo 'Environment variables loaded:'
   
-              # 拉取最新的 Docker 映像
-              docker-compose -f \$COMPOSE_FILE pull
-  
               if [ \"\$DEPLOYMENT_TYPE\" = 'initial' ]; then
                 echo \"Performing initial deployment...\"
                 docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
               else
                 echo \"Performing update deployment...\"
-                # 檢查是否有任何服務在運行
-                RUNNING_SERVICES=$(docker-compose -f \$COMPOSE_FILE ps --services --filter \"status=running\")
+                docker-compose -f docker-compose.yaml  down \$APP_SERVICE
                 
-                if [ -z \"\$RUNNING_SERVICES\" ]; then
-                  echo \"No services are running. Starting all services...\"
-                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
-                else
-                  echo \"Updating specific services for \${APP_ENV} environment...\"
-                  docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE mongo_\${APP_ENV} redis_\${APP_ENV} nginx
-                fi
+                # 清理舊的容器和網絡
+                docker-compose -f \$COMPOSE_FILE rm -f
+                docker network prune -f
+                
+                echo \"Updating specific services for \${APP_ENV} environment...\"
+                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d --build \$APP_SERVICE nginx
               fi
             "
       - name: Verify Deployment
