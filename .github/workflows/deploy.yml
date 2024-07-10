@@ -137,8 +137,6 @@ jobs:
               else
                 echo \"Performing update deployment...\"
                 docker-compose -f docker-compose.yaml  down \$APP_SERVICE
-                
-                # 清理舊的容器和網絡
                 docker-compose -f \$COMPOSE_FILE rm -f
                 docker network prune -f
                 
