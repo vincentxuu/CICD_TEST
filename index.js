@@ -64,7 +64,7 @@ app.get('/', (req, res) => {
       <h1>Current Environment: ${process.env.NODE_ENV}</h1>
       <p>PORT: ${process.env.PORT}</p>
       <p>FRONTEND_URL: ${process.env.FRONTEND_URL}</p>
-      <p>MONGODB_URL: ${process.env.MONGODB_URL}</p>
+      <p>MONGODB_URL: ${process.env.MONGO_URL}</p>
       <p>REDIS_HOST: ${process.env.REDIS_HOST}</p>
     </body>
     </html>
