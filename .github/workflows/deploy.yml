@@ -131,7 +131,7 @@ jobs:
                 docker-compose -f docker-compose.yaml  down \$APP_SERVICE
                 
                 echo \"Updating specific services for \${APP_ENV} environment...\"
-                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d  \$APP_SERVICE 
+                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d  \$APP_SERVICE nginx
               fi
             "
       - name: Verify Deployment
