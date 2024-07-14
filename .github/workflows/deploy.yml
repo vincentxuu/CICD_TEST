@@ -184,9 +184,9 @@ jobs:
                 
                 echo \"Updating specific services for \${APP_ENV} environment...\"
 
-                docker-compose pull \$APP_SERVICE
+                docker-compose pull \$APP_SERVICE nginx
 
-                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE build \$APP_SERVICE 
+                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE build \$APP_SERVICE nginx
 
                 docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d \$APP_SERVICE nginx
               fi
