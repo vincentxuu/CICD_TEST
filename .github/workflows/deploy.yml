@@ -175,8 +175,8 @@ jobs:
                 docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d
               else
                 echo \"Performing update deployment...\"
-                docker-compose -f docker-compose.yaml  down \$APP_SERVICE nginx
-                docker-compose -f \$COMPOSE_FILE rm -f
+                docker-compose -f \$COMPOSE_FILE  down \$APP_SERVICE nginx
+                docker-compose -f \$COMPOSE_FILE rm -f \$APP_SERVICE nginx
                 docker ps -a
                 docker container prune -f
                 docker image prune -f
@@ -186,7 +186,7 @@ jobs:
 
                 docker-compose pull \$APP_SERVICE nginx
 
-                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE build \$APP_SERVICE nginx
+                docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE build --no-cache \$APP_SERVICE nginx
 
                 docker-compose --env-file .env.\${APP_ENV} -f \$COMPOSE_FILE up -d \$APP_SERVICE nginx
               fi
