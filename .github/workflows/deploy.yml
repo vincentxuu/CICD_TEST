@@ -98,6 +98,7 @@ jobs:
             apt-get install -y docker.io docker-compose &&
             systemctl start docker &&
             systemctl enable docker
+          "
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
