@@ -140,9 +140,9 @@ const updateActivity = async (req, res) => {
                     const cachedData = await redis.get(cacheKey);
                     if (cachedData) {
                         const activities = JSON.parse(cachedData);
-                        const activityIndex = activities.findIndex(partner => partner._id.toString() === _id);
+                        const activityIndex = activities.findIndex(activity => activity._id.toString() === _id);
                         if (activityIndex !== -1) {
-                            activities[activityIndex] = updatedUserProfile.toObject();
+                            activities[activityIndex] = updatedActivity.toObject();
                             await redis.set(cacheKey, JSON.stringify(activities), 'EX', 3600);
                         }
                     }
