@@ -145,7 +145,7 @@ const updateActivity = async (req, res, next) => {
                 }
 
                 // 更新活動特定的快取
-                const activityCacheKey = `activity:${_id}`;
+                const activityCacheKey = `activities:${_id}`;
                 await redis.set(activityCacheKey, JSON.stringify(updatedActivity.toObject()), 'EX', 3600);
             };
 

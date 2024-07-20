@@ -123,7 +123,7 @@ const update = async (req, res, next) => {
               }
 
               // 更新用戶特定的快取
-              const userCacheKey = `user:${_id}`;
+              const userCacheKey = `partners:${_id}`;
               await redis.set(userCacheKey, JSON.stringify(updatedUserProfile.toObject()), 'EX', 3600);
           };
 
