@@ -115,10 +115,8 @@ const updateActivity = async (req, res) => {
             return res.status(403).json({ error: "You are not authorized to delete this activity" });
         }
         const fieldsToUpdate = [
-            'birthDay', 'contactList', 'educationStage', 'email', 'gender', 'googleID',
-            'name', 'photoURL', 'interestList', 'isOpenLocation', 'isOpenProfile',
-            'isSubscribeEmail', 'location', 'roleList', 'selfIntroduction', 'share',
-            'tagList', 'wantToDoList'
+            'title', 'photoURL', 'photoAlt', 'category', 'area', 'time', 'partnerStyle',
+            'partnerEducationStep', 'description', 'tagList', 'isGrouping'
         ];
 
         let isUpdated = false;
@@ -189,12 +187,23 @@ const deleteActivity = async (req, res) => {
         const deletedActivity = await Activity.findByIdAndDelete(_id);
 
         // Update Redis cache
-        const cacheKey = `activities:${JSON.stringify({})}`;
-        const cachedData = await redis.get(cacheKey);
-        if (cachedData) {
-            const activities = JSON.parse(cachedData);
-            const updatedActivities = activities.filter(a => a._id.toString() !== _id);
-            await redis.set(cacheKey, JSON.stringify(updatedActivities), 'EX', 3600);
+        try {
+            // 清除所有可能包含該活動的快取
+            const keys = await redis.keys('activities:*');
+            for (const key of keys) {
+                const cachedData = await redis.get(key);
+                if (cachedData) {
+                    const activities = JSON.parse(cachedData);
+                    const updatedActivities = activities.filter(a => a._id.toString() !== _id);
+                    if (activities.length !== updatedActivities.length) {
+                        await redis.set(key, JSON.stringify(updatedActivities), 'EX', 3600);
+                    }
+                }
+            }
+        } catch (cacheError) {
+            console.error('Error updating cache:', cacheError);
+            // 可以選擇清除所有快取
+            // await redis.flushall();
         }
 
         res.status(200).json({ message: 'Activity deleted successfully.' });
