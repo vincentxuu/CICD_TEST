@@ -99,7 +99,7 @@ const createActivity = async (req, res) => {
 };
 
 
-const updateActivity = async (req, res, next) => {
+const updateActivity = async (req, res) => {
     try {
         const _id = req.params.id;
         const userId = req.user._id;
@@ -126,15 +126,20 @@ const updateActivity = async (req, res, next) => {
                 isUpdated = true;
             }
         });
-
+        console.log("activity[field] = req.body[field];",activity)
         if (isUpdated) {
             activity.updatedDate = Date.now();
             const updatedActivity = await activity.save();
+            console.log("updatedActivity",updatedActivity)
 
             // 更新 Redis 快取
             const updateCache = async () => {
                 const cacheKey = `activities:${JSON.stringify({ _id })}`;
+                console.log("cacheKey",cacheKey)
+
                 const cachedData = await redis.get(cacheKey);
+                console.log("cachedData",cachedData)
+
                 if (cachedData) {
                     const activities = JSON.parse(cachedData);
                     const index = activities.findIndex(a => a._id.toString() === _id);
@@ -146,6 +151,7 @@ const updateActivity = async (req, res, next) => {
 
                 // 更新活動特定的快取
                 const activityCacheKey = `activities:${_id}`;
+                console.log("activityCacheKey",activityCacheKey)
                 await redis.set(activityCacheKey, JSON.stringify(updatedActivity.toObject()), 'EX', 3600);
             };
 
