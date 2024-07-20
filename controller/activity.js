@@ -223,7 +223,10 @@ const changeActivityStatus = async (req, res) => {
         if (activity.userId.toString() !== userId) {
             return res.status(403).json({ error: "You are not authorized to change the status of this activity" });
         }
-
+        const changeActivityStatus = await Activity.findByIdAndUpdate(_id, req.body);
+        if (!changeActivityStatus) {
+            return res.status(404).json({ error: "Activity not found" });
+        }
         res.status(200).json({ message: 'Activity changed successfully.' });
     } catch (error) {
         handleErrors(res, error);
