@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { uploadToR2, getFromR2 } = require('../services/r2Service');
+const { uploadToR2, getFromR2, deleteFromR2 } = require('../services/r2Service');
 
 const uploadImage = async (req, res) => {
   try {
@@ -31,7 +31,20 @@ const getImage = async (req, res) => {
   }
 };
 
+
+const deleteImage = async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    await deleteFromR2(filename);
+    res.status(200).json({ message: 'File deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    res.status(500).json({ error: 'Error deleting file.' });
+  }
+};
+
 module.exports = {
   uploadImage,
   getImage,
+  deleteImage,
 };

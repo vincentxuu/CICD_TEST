@@ -45,16 +45,13 @@ const getPartner = async (req, res, next) => {
             filter = searchQuery;
         }
 
-        // 创建缓存键，只考虑过滤条件，不包括分页信息
         const cacheKey = `partners:${JSON.stringify(filter)}`;
         const cachedData = await redis.get(cacheKey);
         let allData = cachedData ? JSON.parse(cachedData) : [];
 
-        // 计算从缓存中提取数据的起始位置和结束位置
         const startIndex = (page - 1) * pageSize;
         const endIndex = startIndex + pageSize;
 
-        // 如果缓存中没有足够的数据，从数据库中查询并更新缓存
         if (allData.length < endIndex) {
             const additionalData = await User.find(filter)
                 .skip(allData.length)
@@ -64,12 +61,10 @@ const getPartner = async (req, res, next) => {
             await redis.set(cacheKey, JSON.stringify(allData), 'EX', 3600); // 更新缓存
         }
 
-        // 提取需要的数据范围
         const pagedData = allData.slice(startIndex, endIndex);
         const totalCount = await User.countDocuments(filter);
         const totalPages = Math.ceil(totalCount / pageSize);
 
-        // 构建响应
         const response = {
             data: pagedData,
             page,
@@ -123,8 +118,6 @@ const update = async (req, res, next) => {
         user.updatedDate = Date.now();
 
         const updatedUserProfile = await user.save();
-
-        console.log("updatedUserProfile:", updatedUserProfile);
 
         res.json({ data: updatedUserProfile });
     } catch (error) {

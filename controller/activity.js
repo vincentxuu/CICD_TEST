@@ -23,35 +23,29 @@ const getActivity = async (req, res) => {
         if (isGrouping) filter.isGrouping = isGrouping;
         if (category) filter.category = category;
 
-        // 创建缓存键，只考虑过滤条件，不包括分页信息
         const cacheKey = `activities:${JSON.stringify(filter)}`;
         const cachedData = await redis.get(cacheKey);
         let allData = cachedData ? JSON.parse(cachedData) : [];
 
-        // 计算从缓存中提取数据的起始位置和结束位置
         const startIndex = (page - 1) * pageSize;
         const endIndex = startIndex + pageSize;
 
-        // 如果缓存中没有足够的数据，从数据库中查询并更新缓存
         if (allData.length < endIndex) {
             const additionalData = await Activity.find(filter)
                 .skip(allData.length)
-                .limit(30); // 每次查询30条数据
+                .limit(30); 
 
             allData = allData.concat(additionalData);
             await redis.set(cacheKey, JSON.stringify(allData), 'EX', 3600); // 更新缓存
         }
 
-        // 提取需要的数据范围
         const pagedData = allData.slice(startIndex, endIndex);
         const totalCount = await Activity.countDocuments(filter);
         const totalPages = Math.ceil(totalCount / pageSize);
 
-        // 获取相关用户信息
         const userIds = Array.from(new Set(pagedData?.map(item => item.userId)));
         const users = await User.find({ _id: { $in: userIds } });
 
-        // 组合活动和用户数据
         const combinedData = pagedData?.map(activityItem => {
             const user = users?.find(userItem => userItem._id?.toString() === activityItem.userId?.toString());
             if (user) {
@@ -107,15 +101,20 @@ const createActivity = async (req, res) => {
 const updateActivity = async (req, res) => {
     try {
         const _id = req.params.id;
-        const updatedActivity = await Activity.findByIdAndUpdate(_id, req.body, { new: true });
+        const userId = req.user._id;
+        const activity = await Activity.findById(_id);
 
-        if (!updatedActivity) {
+        if (!activity) {
             return res.status(404).json({ error: "Activity not found" });
         }
 
-        res.json({
-            data: updatedActivity,
-        });
+        if (activity.userId.toString() !== userId) {
+            return res.status(403).json({ error: "You are not authorized to update this activity" });
+        }
+
+        const updatedActivity = await Activity.findByIdAndUpdate(_id, req.body, { new: true });
+
+        res.json({ data: updatedActivity });
     } catch (error) {
         handleErrors(res, error);
     }
@@ -123,12 +122,20 @@ const updateActivity = async (req, res) => {
 
 const deleteActivity = async (req, res) => {
     try {
-        const deletedActivity = await Activity.findByIdAndDelete(req.params.id);
+        const _id = req.params.id;
+        const userId = req.user._id;
+        const activity = await Activity.findById(_id);
 
-        if (!deletedActivity) {
+        if (!activity) {
             return res.status(404).json({ error: "Activity not found" });
         }
-        res.json({ deletedActivity });
+        console.log("deleteActivity_activity.userId.toString()::  ",activity.userId.toString());
+        if (activity.userId.toString() !== userId) {
+            return res.status(403).json({ error: "You are not authorized to delete this activity" });
+        }
+        const deletedActivity = await Activity.findByIdAndDelete(_id);
+
+        res.status(200).json({ message: 'Activity deleted successfully.' });
     } catch (error) {
         handleErrors(res, error);
     }
@@ -137,15 +144,19 @@ const deleteActivity = async (req, res) => {
 const changeActivityStatus = async (req, res) => {
     try {
         const _id = req.params.id;
-        console.log("changeActivityStatus", req.body);
-        const changeActivityStatus = await Activity.findByIdAndUpdate(_id, req.body);
-        if (!changeActivityStatus) {
+        const userId = req.user._id;
+
+        const activity = await Activity.findById(_id);
+
+        if (!activity) {
             return res.status(404).json({ error: "Activity not found" });
         }
 
-        res.json({
-            "success": true,
-        });
+        if (activity.userId.toString() !== userId) {
+            return res.status(403).json({ error: "You are not authorized to change the status of this activity" });
+        }
+
+        res.status(200).json({ message: 'Activity changed successfully.' });
     } catch (error) {
         handleErrors(res, error);
     }

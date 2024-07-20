@@ -1,7 +1,6 @@
 const express = require('express');
 const { mongoConnect } = require('./services/mongo');
 const cors = require("cors");
-const path = require('path');
 const dotenv = require('dotenv');
 dotenv.config();
 const authRoutes = require('./routes/auth');
@@ -11,27 +10,38 @@ const tagRoutes = require('./routes/tag');
 const emailRoutes = require('./routes/email');
 const imageRoutes = require('./routes/image');
 const session = require("express-session");
+const rateLimit = require("express-rate-limit");
 const passport = require("passport");
 require("./services/passport");
 const PORT = process.env.PORT || 3000;
 
 const app = express();
 app.use(express.json());
-app.use(
-    cors({
-      origin: [
-        process.env.FRONTEND_URL,
-        'https://daodao-f2e-daodaoedu.vercel.app',
-        'https://daodao-f2e-pi.vercel.app',
-        'http://localhost:5000',
-        'https://dev.daodao-notion-test.pages.dev',
-        'https://www.daoedu.tw',
-    ],
-      methods: "GET,POST,PUT,DELETE",
-      credentials: true,
-    })
-  );
+const corsOptions = {
+  origin: [
+    process.env.FRONTEND_URL,
+    'https://daodao-f2e-daodaoedu.vercel.app',
+    'https://daodao-f2e-pi.vercel.app',
+    'http://localhost:5000',
+    'https://dev.daodao-notion-test.pages.dev',
+    'https://www.daoedu.tw',
+  ],
+  methods: "GET,POST,PUT,DELETE",
+  credentials: true,
+};
 
+app.use(cors(corsOptions));
+
+  // Rate limiter configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+app.use(limiter);
 app.use(session({
     secret: process.env.SESSION_SEVRET,
     resave: false,
@@ -72,14 +82,17 @@ app.get('/', (req, res) => {
   res.send(htmlContent);
 });
 
-const redirectUrl = process.env.NODE_ENV === 'production' ? 'https://daodaoedu.tw' : 'https://dev.daodao-notion-test.pages.dev';
-console.log(redirectUrl);
 
 async function startServer() {
+  try {
     await mongoConnect();
     app.listen(PORT, () => {
-        console.log(`Listening on port ${PORT}...`)
+      console.log(`Server running on port ${PORT}`);
     });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
 startServer();
