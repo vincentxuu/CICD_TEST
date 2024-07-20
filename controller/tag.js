@@ -1,7 +1,5 @@
 const User = require("../models/user.model")
 
-
-
 async function calculateTagCounts() {
   const users = await User.find({});
 
@@ -20,7 +18,6 @@ async function calculateTagCounts() {
 
   return sortedTags;
 }
-
 
 async function getTopTags(req, res) {
   try {

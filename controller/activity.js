@@ -98,27 +98,65 @@ const createActivity = async (req, res) => {
     }
 };
 
-const updateActivity = async (req, res) => {
+
+const update = async (req, res, next) => {
     try {
         const _id = req.params.id;
-        const userId = req.user._id;
-        const activity = await Activity.findById(_id);
-
-        if (!activity) {
-            return res.status(404).json({ error: "Activity not found" });
+        let user = await User.findOne({ _id });
+        if (!user) {
+            throw new Error("找不到用戶");
         }
 
-        if (activity.userId.toString() !== userId) {
-            return res.status(403).json({ error: "You are not authorized to update this activity" });
+        const fieldsToUpdate = [
+            'birthDay', 'contactList', 'educationStage', 'email', 'gender', 'googleID',
+            'name', 'photoURL', 'interestList', 'isOpenLocation', 'isOpenProfile',
+            'isSubscribeEmail', 'location', 'roleList', 'selfIntroduction', 'share',
+            'tagList', 'wantToDoList'
+        ];
+
+        let isUpdated = false;
+        fieldsToUpdate.forEach(field => {
+            if (req.body[field] !== undefined) {
+                user[field] = req.body[field];
+                isUpdated = true;
+            }
+        });
+
+        if (isUpdated) {
+            user.updatedDate = Date.now();
+            const updatedUserProfile = await user.save();
+
+            // 更新 Redis 快取
+            const updateCache = async () => {
+                const cacheKey = `partners:${JSON.stringify({ _id })}`;
+                const cachedData = await redis.get(cacheKey);
+                if (cachedData) {
+                    const partners = JSON.parse(cachedData);
+                    const index = partners.findIndex(p => p._id.toString() === _id);
+                    if (index !== -1) {
+                        partners[index] = updatedUserProfile.toObject();
+                        await redis.set(cacheKey, JSON.stringify(partners), 'EX', 3600);
+                    }
+                }
+
+                // 更新用戶特定的快取
+                const userCacheKey = `user:${_id}`;
+                await redis.set(userCacheKey, JSON.stringify(updatedUserProfile.toObject()), 'EX', 3600);
+            };
+
+            // 非同步更新快取，不阻塞響應
+            updateCache().catch(console.error);
+
+            res.json({ data: updatedUserProfile, message: "用戶資料已更新" });
+        } else {
+            res.json({ message: "沒有字段被更新" });
         }
-
-        const updatedActivity = await Activity.findByIdAndUpdate(_id, req.body, { new: true });
-
-        res.json({ data: updatedActivity });
     } catch (error) {
-        handleErrors(res, error);
+        console.error(error);
+        res.status(500).json({ error: '發生錯誤' });
     }
 };
+
 
 const deleteActivity = async (req, res) => {
     try {
@@ -129,11 +167,21 @@ const deleteActivity = async (req, res) => {
         if (!activity) {
             return res.status(404).json({ error: "Activity not found" });
         }
-        console.log("deleteActivity_activity.userId.toString()::  ",activity.userId.toString());
+
         if (activity.userId.toString() !== userId) {
             return res.status(403).json({ error: "You are not authorized to delete this activity" });
         }
+
         const deletedActivity = await Activity.findByIdAndDelete(_id);
+
+        // Update Redis cache
+        const cacheKey = `activities:${JSON.stringify({})}`;
+        const cachedData = await redis.get(cacheKey);
+        if (cachedData) {
+            const activities = JSON.parse(cachedData);
+            const updatedActivities = activities.filter(a => a._id.toString() !== _id);
+            await redis.set(cacheKey, JSON.stringify(updatedActivities), 'EX', 3600);
+        }
 
         res.status(200).json({ message: 'Activity deleted successfully.' });
     } catch (error) {
