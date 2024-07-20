@@ -135,21 +135,18 @@ const updateActivity = async (req, res) => {
 
             // 更新 Redis 快取
             const updateCache = async () => {
-                const cacheKey = `activities:${JSON.stringify({ _id })}`;
-                console.log("cacheKey",cacheKey)
-
-                const cachedData = await redis.get(cacheKey);
-                console.log("cachedData",cachedData)
-
-                if (cachedData) {
-                    const activities = JSON.parse(cachedData);
-                    const index = activities.findIndex(a => a._id.toString() === _id);
-                    if (index !== -1) {
-                        activities[index] = updatedActivity.toObject();
-                        await redis.set(cacheKey, JSON.stringify(activities), 'EX', 3600);
+                const cacheKeys = await redis.keys('activities:*');
+                for (let cacheKey of cacheKeys) {
+                    const cachedData = await redis.get(cacheKey);
+                    if (cachedData) {
+                        const activities = JSON.parse(cachedData);
+                        const activityIndex = activities.findIndex(partner => partner._id.toString() === _id);
+                        if (activityIndex !== -1) {
+                            activities[activityIndex] = updatedUserProfile.toObject();
+                            await redis.set(cacheKey, JSON.stringify(activities), 'EX', 3600);
+                        }
                     }
                 }
-
                 // 更新活動特定的快取
                 const activityCacheKey = `activities:${_id}`;
                 console.log("activityCacheKey",activityCacheKey)
