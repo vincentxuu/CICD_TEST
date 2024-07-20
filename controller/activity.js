@@ -99,7 +99,7 @@ const createActivity = async (req, res) => {
 };
 
 
-const update = async (req, res, next) => {
+const updateActivity = async (req, res, next) => {
     try {
         const _id = req.params.id;
         let user = await User.findOne({ _id });
