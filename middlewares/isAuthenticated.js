@@ -8,6 +8,7 @@ const isAuthenticated = (req, res, next) => {
   try {
     const cleanedToken = token.replace('Bearer', '').trim();
     const decoded = verifyToken(cleanedToken);
+    req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({message:'Token is invalid'});
