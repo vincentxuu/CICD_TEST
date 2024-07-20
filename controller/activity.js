@@ -104,6 +104,8 @@ const updateActivity = async (req, res) => {
         const _id = req.params.id;
         const userId = req.user._id;
         const activity = await Activity.findById(_id);
+        console.log("Updating activity:", _id, "for user:", userId);
+        console.log("Request body:", req.body);
 
         if (!activity) {
             return res.status(404).json({ error: "Activity not found" });
@@ -122,6 +124,7 @@ const updateActivity = async (req, res) => {
         let isUpdated = false;
         fieldsToUpdate.forEach(field => {
             if (req.body[field] !== undefined) {
+                console.log(`Updating field ${field}:`, req.body[field]);
                 activity[field] = req.body[field];
                 isUpdated = true;
             }
