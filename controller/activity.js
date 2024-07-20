@@ -102,11 +102,16 @@ const createActivity = async (req, res) => {
 const updateActivity = async (req, res, next) => {
     try {
         const _id = req.params.id;
-        let user = await User.findOne({ _id });
-        if (!user) {
-            throw new Error("找不到用戶");
+        const userId = req.user._id;
+        const activity = await Activity.findById(_id);
+
+        if (!activity) {
+            return res.status(404).json({ error: "Activity not found" });
         }
 
+        if (activity.userId.toString() !== userId) {
+            return res.status(403).json({ error: "You are not authorized to delete this activity" });
+        }
         const fieldsToUpdate = [
             'birthDay', 'contactList', 'educationStage', 'email', 'gender', 'googleID',
             'name', 'photoURL', 'interestList', 'isOpenLocation', 'isOpenProfile',
@@ -117,43 +122,43 @@ const updateActivity = async (req, res, next) => {
         let isUpdated = false;
         fieldsToUpdate.forEach(field => {
             if (req.body[field] !== undefined) {
-                user[field] = req.body[field];
+                activity[field] = req.body[field];
                 isUpdated = true;
             }
         });
 
         if (isUpdated) {
-            user.updatedDate = Date.now();
-            const updatedUserProfile = await user.save();
+            activity.updatedDate = Date.now();
+            const updatedActivity = await activity.save();
 
             // 更新 Redis 快取
             const updateCache = async () => {
-                const cacheKey = `partners:${JSON.stringify({ _id })}`;
+                const cacheKey = `activities:${JSON.stringify({ _id })}`;
                 const cachedData = await redis.get(cacheKey);
                 if (cachedData) {
-                    const partners = JSON.parse(cachedData);
-                    const index = partners.findIndex(p => p._id.toString() === _id);
+                    const activities = JSON.parse(cachedData);
+                    const index = activities.findIndex(a => a._id.toString() === _id);
                     if (index !== -1) {
-                        partners[index] = updatedUserProfile.toObject();
-                        await redis.set(cacheKey, JSON.stringify(partners), 'EX', 3600);
+                        activities[index] = updatedActivity.toObject();
+                        await redis.set(cacheKey, JSON.stringify(activities), 'EX', 3600);
                     }
                 }
 
-                // 更新用戶特定的快取
-                const userCacheKey = `user:${_id}`;
-                await redis.set(userCacheKey, JSON.stringify(updatedUserProfile.toObject()), 'EX', 3600);
+                // 更新活動特定的快取
+                const activityCacheKey = `activity:${_id}`;
+                await redis.set(activityCacheKey, JSON.stringify(updatedActivity.toObject()), 'EX', 3600);
             };
 
             // 非同步更新快取，不阻塞響應
             updateCache().catch(console.error);
 
-            res.json({ data: updatedUserProfile, message: "用戶資料已更新" });
+            res.json({ data: updatedActivity, message: "Activity updated successfully." });
         } else {
-            res.json({ message: "沒有字段被更新" });
+            res.json({ message: "No fields were updated" });
         }
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: '發生錯誤' });
+        handleErrors(res, error);
     }
 };
 
