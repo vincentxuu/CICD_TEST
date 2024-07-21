@@ -734,10 +734,8 @@ const sendRegisterEmail = (to, name) => {
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error(error);
-      res.status(500).json({ success: false, error: 'Internal Server Error' });
     } else {
       console.log('Email sent: ' + info.response);
-      res.status(200).json({ success: true, message: 'Email sent successfully' });
     }
   });
 };
