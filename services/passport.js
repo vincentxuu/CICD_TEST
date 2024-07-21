@@ -1,6 +1,8 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20");
 const User = require("../models/user.model");
+const sendRegisterEmail = require("../controller/sendRegisterEmail");
+
 
 const AUTH_OPTIONS = {
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -47,6 +49,8 @@ passport.use(new GoogleStrategy(
                 share: '',
             });
             let saveUser = await newUser.save();
+            sendRegisterEmail(saveUser.email,saveUser.name,);
+
             console.log("成功建立新用戶")
             
             return done(null, saveUser);
